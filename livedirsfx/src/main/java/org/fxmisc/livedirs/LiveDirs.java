@@ -20,6 +20,8 @@ import javafx.scene.control.TreeView;
 import org.reactfx.EventSource;
 import org.reactfx.EventStream;
 import org.reactfx.EventStreams;
+import org.reactfx.value.Val;
+import org.reactfx.value.Var;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -75,6 +77,7 @@ public class LiveDirs<I, T> {
     private final LiveDirsModel<I, T> model;
     private final LiveDirsIO<I> io;
     private final I externalInitiator;
+    private final Var<Boolean> isRefreshing;
 
     /**
      * Creates a LiveDirs instance to be used from a designated thread.
@@ -95,6 +98,7 @@ public class LiveDirs<I, T> {
 
         this.dirWatcher.signalledKeys().subscribe(this::processKey);
         this.errors = EventStreams.merge(dirWatcher.errors(), model.errors(), localErrors);
+        this.isRefreshing = Var.newSimpleVar(false);
     }
 
     /**
@@ -113,6 +117,11 @@ public class LiveDirs<I, T> {
      * watch the file-system for changes.
      */
     public InitiatorTrackingIOFacility<I> io() { return io; }
+
+    public Val<Boolean> isRefreshing()
+    {
+        return isRefreshing;
+    }
 
     /**
      * Adds a directory to watch. The directory will be added to the directory
@@ -142,11 +151,14 @@ public class LiveDirs<I, T> {
      * way to request synchronization in case any inconsistencies are observed.
      */
     public CompletionStage<Void> refresh(Path path) {
+        isRefreshing.setValue(true);
+
         return wrap(dirWatcher.getTree(path))
                 .thenAcceptAsync(tree -> {
                     model.sync(tree);
                     watchTree(tree);
-                }, clientThreadExecutor);
+                }, clientThreadExecutor)
+            .whenComplete((unused, exception) -> isRefreshing.setValue(false));
     }
 
     /**
