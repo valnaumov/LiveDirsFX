@@ -1,7 +1,5 @@
 package org.fxmisc.livedirs;
 
-import static java.nio.file.StandardWatchEventKinds.*;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +20,11 @@ import javafx.scene.control.TreeView;
 import org.reactfx.EventSource;
 import org.reactfx.EventStream;
 import org.reactfx.EventStreams;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 /**
  * LiveDirs combines a directory watcher, a directory-tree model and a simple
@@ -163,7 +166,7 @@ public class LiveDirs<I, T> {
             if(events.stream().anyMatch(evt -> evt.kind() == OVERFLOW)) {
                 refreshOrLogError(dir);
             } else {
-                for(WatchEvent<?> evt: key.pollEvents()) {
+                for(WatchEvent<?> evt: events) {
                     @SuppressWarnings("unchecked")
                     WatchEvent<Path> event = (WatchEvent<Path>) evt;
                     processEvent(dir, event);
