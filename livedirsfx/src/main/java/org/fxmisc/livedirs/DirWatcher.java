@@ -1,8 +1,5 @@
 package org.fxmisc.livedirs;
 
-import static java.nio.file.StandardOpenOption.*;
-import static java.nio.file.StandardWatchEventKinds.*;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -28,6 +25,13 @@ import java.util.stream.Stream;
 
 import org.reactfx.EventSource;
 import org.reactfx.EventStream;
+
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 class DirWatcher {
     private final LinkedBlockingQueue<Runnable> executorQueue = new LinkedBlockingQueue<>();
@@ -286,7 +290,10 @@ class PathNode {
             }
             List<PathNode> children = new ArrayList<>(childPaths.length);
             for(Path p: childPaths) {
-                children.add(getTree(p));
+                if (Files.isReadable(p))
+                {
+                    children.add(getTree(p));
+                }
             }
             return directory(root, children);
         } else {
